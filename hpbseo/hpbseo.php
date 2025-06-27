@@ -1,12 +1,16 @@
 <?php
 /***********************************************************
 Plugin Name: hpb seo plugin for WordPress
-Plugin URI: http://www.allegro-inc.com/seo/9080.html
+Plugin URI: https://www.allegro-inc.com/seo/9080.html
 Description: ホームページビルダー向けのSEO対策プラグインです ※このプラグインを使用するには、hpbダッシュボードを使用する必要があります。
-Version: 2.2.2
+Version: 3.0.1
 Author: Allegro Marketing
-Author URI:http://seo-composer.com
-License:GPL2
+Author URI:https://seo-composer.com
+License:GPL-2.0
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Requires at least: 5.3
+Tested up to: 6.8
+Requires PHP: 7.4
 ***********************************************************/
 
 /**============================================================================
@@ -20,10 +24,9 @@ class hpbseoClass{	//※constでは式や関数は使えない。
 	const metabox_prefix   = "hpbseo";		//add_meta_boxのid
 }
 
+define('PLUGIN_PATH'       , plugin_dir_path(__FILE__));
 define('PLUGIN_URL'        , plugin_dir_url( __FILE__ ));	//プラグインフォルダまでのURL
 define('PLUGIN_IMG_URL'    , PLUGIN_URL . 'image/');		//プラグイン-画像フォルダまでのURL
-//define('PLUGIN_URL'        , plugins_url("/", __FILE__));	//プラグインフォルダまでのURL
-//define('PLUGIN_IMG_URL'    , plugins_url("image/", __FILE__));		//プラグイン-画像フォルダまでのURL
 
 define('CSS_FILE_NAME'     , 'hpbseo.css');					//CSSファイル名
 define('JS_FILE_NAME_ADMIN', 'hpbseo.js');					//JSファイル名
@@ -34,17 +37,10 @@ define('LINT_CONTENT_TUNE' , 400);							//コンテンツ分析表示ON/OFF閾�
 define('DEFAULT_DISP_IMAGE_FLG' , true);					//表示イメージ設定デフォルト値（on/off）
 define('DEFAULT_DISP_IMAGE_OPT' , 'local');					//表示イメージ設定デフォルト値（local/http）
 
-define('CNFLICT_LIST' , 'all-in-one-seo-pack,headspace2');	//競合チェック用（プラグインのフォルダ名を指定／使うときは「,」でsplitする）
+define('CNFLICT_LIST' , 'all-in-one-seo-pack,headspace2,wordpress-seo,autodescription,seo-by-rank-math,wp-seopress');	//競合チェック用（プラグインのフォルダ名／「,」区切り）
 
-define('DISPIMAGE_MAX_TITLE'    , 66);						//表示イメージの最大バイト数（タイトル）
-define('DISPIMAGE_MAX_URL'      , 60);						//表示イメージの最大バイト数（URL）
-define('DISPIMAGE_MAX_META_DES' , 240);						//表示イメージの最大バイト数（スニペット）
-
-define('CATEGORY_SERVICE_URL' , "http://www.allegro-inc.com/user_data/hpb_seo_plugin.php");	//カテゴリサービス登録状況URL
 define('HELP_URL'             , "http://www.allegro-inc.com/seo/9080.html");				//ヘルプページURL
 define('HPB18_URL'            , "http://seo-composer.com");		//HPB18 seoマスターページURL
-
-define('TEMPLATE_CHECK' , "hpb18T");						//hpbのテンプレートフォルダ名（前方一致検索用）
 define('HPB_PATH' , "hpbtool/hpbtools.php");				//hpbのダッシュボードプラグインフォルダ名
 
 /**----------------------------------------------------------------------------
@@ -59,7 +55,17 @@ function fncHpbSeo_IncludeCSS() {
  * --------------------------------------------------------------------------*/
 function fncHpbSeo_IncludeAdminJS() {
 	wp_enqueue_script( "jquery");
-	wp_enqueue_script( "hpbseo_admin_js", PLUGIN_URL . JS_FILE_NAME_ADMIN);
+
+	//wp_enqueue_script( "hpbseo_admin_js", PLUGIN_URL . JS_FILE_NAME_ADMIN);
+
+    // ブロックエディタの依存関係を含むカスタムスクリプトをエンキュー
+    wp_enqueue_script(
+        "hpbseo_admin_js",           // スクリプトのハンドル名
+        PLUGIN_URL . JS_FILE_NAME_ADMIN, // スクリプトのURL
+        array('wp-blocks', 'wp-i18n', 'wp-element', 'wp-editor', 'jquery'), // 依存関係
+        filemtime(PLUGIN_PATH . JS_FILE_NAME_ADMIN), // バージョン：ファイルの最終更新日時
+        true // スクリプトをフッターにロード
+    );
 }
 
 
@@ -162,7 +168,8 @@ class clsHpbSeo_ContentTune{
 				"コンテンツ分析", 
 				array($this, "fncContentTune"), 
 				$val,
-				"side",
+				//"side",
+				"normal", 
 				"high"
 			);
 		}
@@ -181,8 +188,10 @@ class clsHpbSeo_ContentTune{
  		$html .= "\n" . '<div id="' . hpbseoClass::input_prefix . 'content_tune_btn_div">';
 		$html .= "\n" . '<input type="button" id="' . hpbseoClass::input_prefix . 'content_tune" class="button-secondary" value="更新">';
  		$html .= "\n" . '</div>';
+
 		//*****メインテーマ*****
 		$html .= "\n" . '<div id="' . hpbseoClass::input_prefix . 'content_tune_wrap">';
+
 		$html .= "\n" . '<div id="' . hpbseoClass::input_prefix . 'content_tune_div" class="' . hpbseoClass::input_prefix . 'display_none">';
 		$html .= "\n" . '<span class="' . hpbseoClass::input_prefix . 'contenttune_subtitle">ページのメインテーマ</span>';
 //		$html .= "\n" . '<br class="clearfix" />';
@@ -191,6 +200,7 @@ class clsHpbSeo_ContentTune{
 		$html .= "\n" . '<br />';
 		$html .= "\n" . '<div  id="' . hpbseoClass::input_prefix . 'main_theme_alert" class="' . hpbseoClass::input_prefix . 'arrow_box_top"></div>';
 		$html .= "\n" . '<br />';
+
 		//*****構成ワード*****
 		$html .= "\n" . '<div id="' . hpbseoClass::input_prefix . 'composition_word_div">';
 		$html .= "\n" . '<span class="' . hpbseoClass::input_prefix . 'contenttune_subtitle">ページの構成ワード</span>';
@@ -199,13 +209,13 @@ class clsHpbSeo_ContentTune{
 		$html .= "\n" . '<div id="' . hpbseoClass::input_prefix . 'composition_word_graph"></div>';
 		$html .= "\n" . '<div  id="' . hpbseoClass::input_prefix . 'composition_word_alert" class="' . hpbseoClass::input_prefix . 'arrow_box_top"></div>';
 		//区切り線
-		$html .= "\n" . '<hr class="' . hpbseoClass::input_prefix . 'sep_line">';
+//		$html .= "\n" . '<hr class="' . hpbseoClass::input_prefix . 'sep_line">';
 		//閾値
 		$html .= "\n" . '<input type="hidden" id="' . hpbseoClass::input_prefix . 'lint_content_tune" value="' . LINT_CONTENT_TUNE . '">';
-		$html .= "\n" . '</div>';
-		$html .= "\n" . '</div>';
 		//*****ローディング*****
 		$html .= "\n" . '<div id="' . hpbseoClass::input_prefix . 'content_tune_loading"><img src="' . PLUGIN_IMG_URL . 'loading.gif"></div>';
+		$html .= "\n" . '</div>';
+
 		$html .= "\n" . '</div>';
 
 		//*****文字数*****
@@ -216,6 +226,8 @@ class clsHpbSeo_ContentTune{
 		$html .= "\n" . '<br />';
 		$html .= "\n" . '<div  id="' . hpbseoClass::input_prefix . 'title_alert"></div>';
 		$html .= "\n" . '<br />';
+		$html .= "\n" . '</div>';
+
 		$html .= "\n" . '</div>';
 
 		//カスタム投稿タイプリスト
@@ -249,7 +261,8 @@ class clsHpbSeo_HeadTune{
 				array($this, "fncHeadTune"),
 				$val,
 				"normal", 
-				"high"
+				"high",
+				//"default"
 			);
 		}
 
@@ -293,6 +306,21 @@ class clsHpbSeo_HeadTune{
 		// フォーム部のHTML
 		$html = '';
 
+		//*****タイトル*****
+		$html .= "\n" . '<br />';
+		$html .= "\n" . '<span class="' . hpbseoClass::input_prefix . 'headtune_subtitle">タイトル</span>';
+
+		$html .= "\n" . '<p class="' . hpbseoClass::input_prefix . 'meta_cautions">';
+		$html .= "\n" . '※メインテーマのワードを含めた文章にしてください。';
+		$html .= "\n" . '<br />';
+		$html .= "\n" . '※重要なキーワードは、前方に配置してください。';
+		$html .= "\n" . '<br />';
+		$html .= "\n" . '※魅力的な文章は、検索結果でクリック率が高まります。';
+		$html .= "\n" . '</p>';
+
+		//区切り線
+		$html .= "\n" . '<hr class="' . hpbseoClass::input_prefix . 'sep_line">';
+
 		//*****メタディスクリプション*****
 		$html .= "\n" . '<br />';
 		$html .= "\n" . '<span class="' . hpbseoClass::input_prefix . 'headtune_subtitle">メタディスクリプション設定</span>';
@@ -304,14 +332,14 @@ class clsHpbSeo_HeadTune{
 		$html .= "\n" . ' >';
 		$html .= "\n" . '<br />';
 		//テキストエリア
-		$html .= "\n" . '<textarea cols="50" rows="3" id="' . hpbseoClass::input_prefix . 'meta_des" name="' . hpbseoClass::input_prefix . 'meta_des">' . $meta_des . '</textarea>';
+		$html .= "\n" . '<textarea cols="50" rows="3" id="' . hpbseoClass::input_prefix . 'meta_des" name="' . hpbseoClass::input_prefix . 'meta_des" placeholder="メタディスクリプションを入力してください。">' . $meta_des . '</textarea>';
 		//入力ボックス下メッセージ
 		$html .= "\n" . '<p class="' . hpbseoClass::input_prefix . 'meta_cautions">';
 		$html .= "\n" . '※空白の場合、テンプレートから自動的に判断された内容で反映されます。';
 		$html .= "\n" . '</p>';
 		//プレビュー
 		$html .= "\n" . "下記は、上記と一括設定の内容をあわせたものです。";
-		$html .= "\n" . '<div class="clearfix">';
+		$html .= "\n" . '<div class="hpbseo_wrapbox">';
 		$html .= "\n" . '<div class="' . hpbseoClass::input_prefix . 'leftbox">';
 		$html .= "\n" . '<p id="' . hpbseoClass::input_prefix . 'meta_des_preview" class="' . hpbseoClass::input_prefix . 'meta_preview"></p>';
 		$html .= "\n" . '</div>';
@@ -349,7 +377,7 @@ class clsHpbSeo_HeadTune{
 		$html .= "\n" . ' >';
 		$html .= "\n" . '<br />';
 		//テキストボックス
-		$html .= "\n" . '<input type="text" id="' . hpbseoClass::input_prefix . 'meta_key" name="' . hpbseoClass::input_prefix . 'meta_key" value="' . $meta_key . '" />';
+		$html .= "\n" . '<input type="text" id="' . hpbseoClass::input_prefix . 'meta_key" name="' . hpbseoClass::input_prefix . 'meta_key" value="' . $meta_key . '" placeholder="メタキーワードを入力してください。" />';
 		//入力ボックス下メッセージ
 		$html .= "\n" . '<p class="' . hpbseoClass::input_prefix . 'meta_cautions">';
 		$html .= "\n" . '※できる限りページ個々のメタキーワードを設定してください。';
@@ -358,7 +386,7 @@ class clsHpbSeo_HeadTune{
 		$html .= "\n" . '</p>';
 		//プレビュー
 		$html .= "\n" . "下記は、上記と一括設定の内容をあわせたものです。";
-		$html .= "\n" . '<div class="clearfix">';
+		$html .= "\n" . '<div class="hpbseo_wrapbox">';
 		$html .= "\n" . '<div class="' . hpbseoClass::input_prefix . 'leftbox">';
 		$html .= "\n" . '<p id="' . hpbseoClass::input_prefix . 'meta_key_preview" class="' . hpbseoClass::input_prefix . 'meta_preview"></p>';
 		$html .= "\n" . '</div>';
@@ -384,33 +412,8 @@ class clsHpbSeo_HeadTune{
 		$html .= "\n" . '<br />';
 		$html .= "\n" . '<input type="hidden" id="' . hpbseoClass::input_prefix . 'plugin_url" value="' . PLUGIN_URL . '">';
 
-		//区切り線
-		$html .= "\n" . '<hr class="' . hpbseoClass::input_prefix . 'sep_line">';
-
-//		//*****カテゴリサービス登録状況*****
-//		$html .= "\n" . '<input type="hidden" id="' . hpbseoClass::input_prefix . 'view_post_url" value="' . get_permalink($post->ID) . '">';
-//		$html .= "\n" . '<span class="' . hpbseoClass::input_prefix . 'headtune_subtitle">カテゴリサービス登録状況</span>';
-//		$html .= "\n" . '<div class="clearfix" style="margin-bottom:15px;">';
-//		//左
-//		$html .= "\n" . '<div id="' . hpbseoClass::input_prefix . 'category_box" class="clearfix">';
-//		$html .= "\n" . '<div id="' . hpbseoClass::input_prefix . 'category_box_left">';
-//		$html .= "\n" . '<p id="' . hpbseoClass::input_prefix . 'category_value"></p>';
-//		$html .= "\n" . '<p id="' . hpbseoClass::input_prefix . 'category_comment" class="' . hpbseoClass::input_prefix . 'category_comment">登録状況</p>';
-//		$html .= "\n" . '</div>';
-//		$html .= "\n" . '<div id="' . hpbseoClass::input_prefix . 'category_box_right">';
-//		$html .= "\n" . '<span id="' . hpbseoClass::input_prefix . 'category_cnt"></span>';
-//		$html .= "\n" . '<br />';
-//		$html .= "\n" . 'ディレクトリ登録の詳しい状況は下記よりご確認ください。';
-//		$html .= "\n" . '<p class="link">';
-//		$html .= "\n" . '<a href="' . CATEGORY_SERVICE_URL . '" target="_blank">&gt;&gt;カテゴリ登録状況を確認する（カテゴリ登録とは？）</a>';
-//		$html .= "\n" . '</p>';
-//		$html .= "\n" . '</div>';
-//		$html .= "\n" . '</div>';
-////		//一覧画像
-////		$html .= "\n" . '<div id="' . hpbseoClass::input_prefix . 'category_image">';
-////		$html .= "\n" . '</div>';
-//		$html .= "\n" . '</div>';
-		$html .= "\n" . '<a href="' . HPB18_URL . '" target="_blank">ホームページ・ビルダー22 ビジネスプレミアムに同梱されているSEO Composerについてはこちら</a>';
+		//$html .= "\n" . '<hr class="' . hpbseoClass::input_prefix . 'sep_line">';
+		//$html .= "\n" . '<a href="' . HPB18_URL . '" target="_blank">ホームページ・ビルダー22 ビジネスプレミアムに同梱されているSEO Composerについてはこちら</a>';
 
 		//プラグイン競合チェック
 		if($this->fncConflictCheck()){
@@ -444,10 +447,10 @@ class clsHpbSeo_HeadTune{
 			return;
 		}
 
-		//ステータスチェック（公開前の場合は取得できない）
-		if(get_post_status($post_id)!="publish"){
-			return;
-		}
+		////ステータスチェック（公開前の場合は取得できない）
+		//if(get_post_status($post_id)!="publish"){
+		//	return;
+		//}
 
 		$disp_title    = "";
 		$disp_meta_des = "";
@@ -469,20 +472,21 @@ class clsHpbSeo_HeadTune{
 		//ページのURL取得（日本語は自動でエンコードされる）
 		$page_url = get_permalink($post_id);
 
-		if($dispimage_opt=="local"){
+//		if($dispimage_opt=="local"){
 			//ワードプレス内から取得
 //			$disp_title = wp_title('',false);
 //			if($disp_title==""){
-				$disp_title = $post->post_title . "｜" . get_bloginfo('name') ;
+				$disp_title = "<span>" . $post->post_title . "</span>｜" . get_bloginfo('name') ;
 //			}
 			if($disp_meta_des==""){
 				$disp_meta_des = get_bloginfo('description');
 			}
 
+/*
 		}else{
 			//実際のURLから取得
 
-			//SSLの場合→取れない？？？
+			//SSLの場合は取得しない
 			if(preg_match("/https:.+$/",$page_url, $matches)==1){
 				array_push($err_tmp,"SSLのページでは情報を取得できません。");
 			}else{
@@ -504,17 +508,20 @@ class clsHpbSeo_HeadTune{
 					$arr_meta = @get_meta_tags($page_url);
 					if($arr_meta==false){
 						array_push($err_tmp,"メタディスクリプションの取得に失敗しました。");
-					}else if($arr_meta["description"]==""){
+					}else if(!isset($arr_meta["description"])){
 						array_push($err_tmp,"メタディスクリプションが見つかりません。");
+					}else if($arr_meta["description"]==""){
+						array_push($err_tmp,"メタディスクリプションが空です。");
 					}else{
 						$disp_meta_des = $arr_meta["description"];
 					}
 				}
 			}
 		}
+*/
 
 		//エラーメッセージ取得
-		$err_msg = join($err_tmp,'<br />');
+		$err_msg = join('<br />', $err_tmp);
 
 		//出力
 		$html  = '';
@@ -522,19 +529,8 @@ class clsHpbSeo_HeadTune{
 		$html .= "\n" . '<p class="' . hpbseoClass::input_prefix . 'boxtitle">表示イメージ</p>';
 
 		if($err_msg == ''){
-
-			//表示文字数の調整
-			if(strlen($disp_title) > DISPIMAGE_MAX_TITLE){
-				$disp_title = mb_strimwidth($disp_title, 0, DISPIMAGE_MAX_TITLE,'','UTF-8') . '...';
-			}
-			$page_url = str_replace('http://','',$page_url);	// http://を削除（httpsはそのまま）
-			if(strlen($page_url) > DISPIMAGE_MAX_URL){
-				$page_url = mb_strimwidth($page_url, 0, DISPIMAGE_MAX_URL,'','UTF-8') . '...';
-			}
-			if(strlen($disp_meta_des) > DISPIMAGE_MAX_META_DES){
-				$disp_meta_des = mb_strimwidth($disp_meta_des, 0, DISPIMAGE_MAX_META_DES,'','UTF-8') . '...';
-			}
-
+			// http://を削除（httpsはそのまま）
+			$page_url = str_replace('http://','',$page_url);
 			//エスケープ
 			$disp_meta_des = htmlspecialchars($disp_meta_des);
 
@@ -559,22 +555,23 @@ class clsHpbSeo_HeadTune{
 
 		//有効化されているプラグイン（パス）を取得
 		$active_plugins = get_option('active_plugins');
-		$conflict_flg = false;
-
-		//有効化プラグイン分ループ
-		for($i=0;$i<count($active_plugins);$i++){
-			//競合プラグインリストとの比較
-			for($j=0;$j<count($conflict_list);$j++){
-				$tmp=preg_match("/" .$conflict_list[$j]. "/",$active_plugins[$i]);
-				if($tmp===1){
-					$conflict_flg = true;
-					break 2;
-				}
-			}
-
+		if (!is_array($active_plugins)) {
+			return false;
 		}
 
-		return $conflict_flg;
+		foreach ($active_plugins as $plugin_path) {
+			foreach ($conflict_list as $conflict_keyword) {
+				if ($conflict_keyword === '') {
+					continue;
+				}
+				// キーワードが含まれているかを正規表現でチェック（安全のためpreg_quote使用）
+				if (preg_match('/' . preg_quote($conflict_keyword, '/') . '/', $plugin_path)) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 }
@@ -590,7 +587,7 @@ function fncHpbSeo_MetaUpdate($post_id){
 //	}
 
 	//※nonceの値が取得できない場合は終了
-	if( !$_POST[hpbseoClass::input_prefix . 'nonce_field']){
+	if(!isset($_POST[hpbseoClass::input_prefix . 'nonce_field'])){
 		return $post_id;
 	}
 
@@ -627,8 +624,8 @@ function fncHpbSeo_MetaUpdate($post_id){
 	$meta_des = str_replace(array("\r\n","\r","\n"), '', $meta_des);
 
 	//※正規表現にエスケープ（ . \ + * ? [ ^ ] $ ( ) { } = ! < > | : -）
-	$meta_des = preg_quote ($meta_des);
-	$meta_key = preg_quote ($meta_key);
+	$meta_des = preg_quote($meta_des);
+	$meta_key = preg_quote($meta_key);
 
 	if($meta_des=='' && $meta_key=='' & $meta_des_add_flg==0 && $meta_key_add_flg==0){
 		//全て未入力の場合は削除
@@ -659,14 +656,20 @@ class clsHpbSeo_ReplaceMeta {
 	function replaceMeta() {
 		global $post;
 
+		$meta_des_tag = '';
+		$meta_key_tag = '';
+
 		//一括設定値の取得
 		$global_setting  = get_option(hpbseoClass::field_prefix . 'global_setting');
+        if (!$global_setting) {
+            return;
+        }
 		$global_meta_des = $global_setting[hpbseoClass::field_obj_prefix . 'global_meta_des'];
 		$global_meta_key = $global_setting[hpbseoClass::field_obj_prefix . 'global_meta_key'];
 
 		//個別設定値の取得
 		$meta  = get_post_meta($post->ID, hpbseoClass::field_prefix . 'meta', true);
-		if($meta){
+		if(is_single() && $meta){
 			$meta_des = $meta[hpbseoClass::field_obj_prefix . 'meta_des'] ;
 			$meta_key = $meta[hpbseoClass::field_obj_prefix . 'meta_key'] ;
 			$meta_des_add_flg = $meta[hpbseoClass::field_obj_prefix . 'meta_des_add_flg'] ;
@@ -791,12 +794,14 @@ class clsHpbSeo_AdminMenu {
 			$global_meta_des   = trim($_POST[hpbseoClass::field_obj_prefix . 'global_meta_des']);
 			$global_meta_key   = trim($_POST[hpbseoClass::field_obj_prefix . 'global_meta_key']);
 			$dispimage_flg     = $_POST[hpbseoClass::field_obj_prefix . 'dispimage_flg'];
-			$dispimage_opt     = $_POST[hpbseoClass::field_obj_prefix . 'dispimage_opt'];
-			$dispimage_opt_sub = $_POST[hpbseoClass::field_obj_prefix . 'dispimage_opt_sub'];
-			//ラジオボタンが非表示状態の場合はhiddenから値を取得
-			if($dispimage_opt == null){
-				$dispimage_opt = $dispimage_opt_sub;
-			}
+			//$dispimage_opt     = $_POST[hpbseoClass::field_obj_prefix . 'dispimage_opt'];
+			//$dispimage_opt_sub = $_POST[hpbseoClass::field_obj_prefix . 'dispimage_opt_sub'];
+			////ラジオボタンが非表示状態の場合はhiddenから値を取得
+			//if($dispimage_opt == null){
+			//	$dispimage_opt = $dispimage_opt_sub;
+			//}
+			$dispimage_opt   = 'local';
+
 
 			//改行コード削除
 			$global_meta_des = str_replace(array("\r\n","\r","\n"), '', $global_meta_des);
@@ -819,7 +824,8 @@ class clsHpbSeo_AdminMenu {
 			$global_meta_des = $global_setting[hpbseoClass::field_obj_prefix . 'global_meta_des'];
 			$global_meta_key = $global_setting[hpbseoClass::field_obj_prefix . 'global_meta_key'];
 			$dispimage_flg   = $global_setting[hpbseoClass::field_obj_prefix . 'dispimage_flg'];
-			$dispimage_opt   = $global_setting[hpbseoClass::field_obj_prefix . 'dispimage_opt'];
+			//$dispimage_opt   = $global_setting[hpbseoClass::field_obj_prefix . 'dispimage_opt'];
+			$dispimage_opt   = 'local';
 		}
 
 		//アンエスケープ
@@ -853,17 +859,19 @@ class clsHpbSeo_AdminMenu {
 			$html .= ' checked="checked" ';
 		}
 		$html .= ' />「表示イメージ」を表示する<br />';
-		$html .= "\n" . '<input type="radio" name="' . hpbseoClass::input_prefix . 'dispimage_opt" class="' . hpbseoClass::input_prefix . 'dispimage_opt" value="local" ';
-		if($dispimage_opt=='local'){
-			$html .= ' checked="checked" ';
-		}
-		$html .= ' />local: ブログ内から取得<br />';
-		$html .= "\n" . '<input type="radio" name="' . hpbseoClass::input_prefix . 'dispimage_opt" class="' . hpbseoClass::input_prefix . 'dispimage_opt" value="http" ';
-		if($dispimage_opt=='http'){
-			$html .= ' checked="checked" ';
-		}
-		$html .= ' />http: 公開画面から取得（通信に時間がかかる場合があります）<br />';
-		$html .= "\n" . '<input type="hidden" id="' . hpbseoClass::input_prefix . 'dispimage_opt_sub" name="' . hpbseoClass::input_prefix . 'dispimage_opt_sub" value="' .$dispimage_opt. '" />';	//null回避用
+		//$html .= "\n" . '<input type="radio" name="' . hpbseoClass::input_prefix . 'dispimage_opt" class="' . hpbseoClass::input_prefix . 'dispimage_opt" value="local" ';
+		//if($dispimage_opt=='local'){
+		//	$html .= ' checked="checked" ';
+		//}
+		//$html .= ' />local: ブログ内から取得<br />';
+		//$html .= "\n" . '<input type="radio" name="' . hpbseoClass::input_prefix . 'dispimage_opt" class="' . hpbseoClass::input_prefix . 'dispimage_opt" value="http" ';
+		//if($dispimage_opt=='http'){
+		//	$html .= ' checked="checked" ';
+		//}
+		//$html .= ' />http: 公開画面から取得（通信に時間がかかる場合があります）<br />';
+		//$html .= "\n" . '<input type="hidden" id="' . hpbseoClass::input_prefix . 'dispimage_opt_sub" name="' . hpbseoClass::input_prefix . 'dispimage_opt_sub" value="' .$dispimage_opt. '" />';	//null回避用
+
+		$html .= "\n" . '※ブログ内から設定内容を取得して表示します。<br />';
 		$html .= "\n" . '</div>';
 
 		$html .= "\n" . '<input type="submit" id="' . hpbseoClass::input_prefix . 'update_admin" class="button-primary" value="設定を保存する">';
@@ -924,12 +932,12 @@ if(fncHpbSeo_hpbCheck()){
 	//js読み込み（管理画面）
 	add_action('admin_enqueue_scripts'  , 'fncHpbSeo_IncludeAdminJS');
 
-	//タイトル・メタ設定
-	add_action('admin_head-post-new.php', 'callHpbSeo_HeadTune');	//新規
-	add_action('admin_head-post.php'    , 'callHpbSeo_HeadTune');	//編集
 	//コンテンツ分析
 	add_action('admin_head-post-new.php', 'callHpbSeo_ContentTune');	//新規
 	add_action('admin_head-post.php'    , 'callHpbSeo_ContentTune');	//編集
+	//タイトル・メタ設定
+	add_action('admin_head-post-new.php', 'callHpbSeo_HeadTune');	//新規
+	add_action('admin_head-post.php'    , 'callHpbSeo_HeadTune');	//編集
 	//「更新」ボタン押下
 	add_action('save_post', 'fncHpbSeo_MetaUpdate');
 

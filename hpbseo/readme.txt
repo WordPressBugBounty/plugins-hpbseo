@@ -1,11 +1,12 @@
 === hpb seo plugin for WordPress ===
 Contributors: Allegro Marketing
 Tags: hpbseo,seo,hpb18,hpb19
-Requires at least: 5.4
-Tested up to: 5.8
-Stable tag: 2.2.2
+Requires at least: 5.3
+Requires PHP: 7.4
+Tested up to: 6.8
+Stable tag: 3.0.1
 License: GPLv2 or later
-License URI: https://www.allegro-inc.com/seo/15358.html
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 It is plug-in which can perform a SEO measure on Wordpress. 
 hpbdashboard is needed in order to operate this plug-in.

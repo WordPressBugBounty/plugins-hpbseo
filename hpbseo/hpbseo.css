@@ -28,7 +28,39 @@
 /* メインテーマ+構成ワードwrap */
 #hpbseo_content_tune_wrap{
 	position:relative;
+	display: flex;
+	gap:24px;
+	flex-wrap: wrap;
 }
+@media (min-width: 1100px) {
+	#hpbseo_content_tune_wrap > div{
+		flex: 1 0 0;
+	}
+}
+
+/* ブロックエディタ読み込み失敗 */
+#hpbseo_content_tune_wrap.fail{
+	position: relative;
+	overflow: hidden; 
+}
+
+#hpbseo_content_tune_wrap.fail::after {
+    content: "本文を入力して、右上の更新ボタンをクリックして再読み込みしてください";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+	font-weight:bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    text-align: center;
+}
+
 
 /* ローディング */
 #hpbseo_content_tune_loading{
@@ -119,6 +151,56 @@
 	padding     : 3px;
 }
 
+.hpbseo_wrapbox{
+	display: flex;
+	gap:12px;
+}
+
+
+
+/* レスポンシブ */
+@media (max-width: 500px) {
+	#hpbseo_meta_des,
+	#hpbseo_meta_key{
+		width:100%;
+	}
+	.hpbseo_wrapbox{
+		flex-direction: column;
+		gap:0;
+	}
+	.hpbseo_wrapbox .hpbseo_leftbox{
+		width       : 100%;
+	}
+	.hpbseo_wrapbox .hpbseo_arrow_box_left{
+		margin-top: 5px;
+		float: none;
+		width: auto;
+	}
+	.hpbseo_wrapbox .hpbseo_arrow_box_left:after,
+	.hpbseo_wrapbox .hpbseo_arrow_box_left:before {
+		bottom: 100%;
+		left: 20%;
+		right: auto;
+		top: auto;
+	}
+	.hpbseo_wrapbox .hpbseo_arrow_box_left:after {
+		border-color: rgba(226, 148, 124, 0);
+		border-bottom-color: #fde5d9;
+		border-width: 5px;
+		margin-left: -5px;
+		margin-top: 0;
+	}
+	.hpbseo_wrapbox .hpbseo_arrow_box_left:before {
+		border-color: rgba(226, 148, 124, 0);
+		border-bottom-color: #e2947c;
+		border-width: 6px;
+		margin-left: -6px;
+		margin-top: 0;
+	}
+}
+
+
+
 /* 注意書き */
 .hpbseo_meta_cautions{
 	margin      : 5px;
@@ -180,8 +262,22 @@ input[type="text"].hpbseo_defaulttext{
 	text-decoration:underline;
 	font-family :'arial,sans-serif';
 	font-style  : normal;
-/*	white-space : nowrap;*/
 	line-height : 1.6;
+
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+#hpbseo_disp_image p.hpbseo_meta_des{
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 #hpbseo_disp_image p.hpbseo_url{
 	margin      : 5px 0px;
@@ -190,6 +286,7 @@ input[type="text"].hpbseo_defaulttext{
 	color       : #009933;
 	text-decoration:none;
 	font-family :'arial,sans-serif';
+	word-break  : break-all;
 }
 #hpbseo_disp_image p.hpbseo_err{
 	color       : #ff0000;
@@ -208,7 +305,6 @@ input[type="text"].hpbseo_defaulttext{
 	border-radius: 3px; /* CSS3 */
 	-moz-border-radius: 3px; /* Firefox */
 	-webkit-border-radius: 3px; /* Safari,Chrome */
-	behavior: url(./PIE.htc); /* IE */
 }
 #hpbseo_category_box_left{
 	float       : left;
@@ -369,7 +465,6 @@ img.hpbseo_optionmenu_icon {
 	border-radius: 3px; /* CSS3 */
 	-moz-border-radius: 3px; /* Firefox */
 	-webkit-border-radius: 3px; /* Safari,Chrome */
-	behavior: url(./PIE.htc); /* IE */
 	float:right;
 	width:35%;
 }
@@ -407,7 +502,7 @@ img.hpbseo_optionmenu_icon {
 	border-radius: 3px; /* CSS3 */
 	-moz-border-radius: 3px; /* Firefox */
 	-webkit-border-radius: 3px; /* Safari,Chrome */
-	behavior: url(./PIE.htc); /* IE */
+	max-width: 500px;
 }
 .hpbseo_arrow_box_top:after,
 .hpbseo_arrow_box_top:before {
@@ -457,7 +552,7 @@ img.hpbseo_optionmenu_icon {
 	width:10px;
 	text-align:right;
 }
-#hpbseo_graph_tbl tr img{
+#hpbseo_graph_tbl tr td img{
 	max-height:12px !important;
 	height:12px !important;
 }

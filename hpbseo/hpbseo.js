@@ -1,39 +1,31 @@
-//IEではconstが動かない？
-id_prefix   = "#hpbseo_";
-cls_prefix  = "hpbseo_";
-name_prefix = "hpbseo_";
-cls_defaulttext = "hpbseo_defaulttext";
-ajax_php_file   = "postajax.php";
-lint_file       = "hpbseo.txt";
-category_php_file = "";
-graph_row_max   = 10;	//グラフ表示件数
-main_theme_max  = 3;	//メインテーマ表示単語数
-uninputted_msg_body     = "記事本文を入力してください。";
-uninputted_msg_meta_des = "メタディスクリプションを入力してください。";
-uninputted_msg_meta_key = "メタキーワードを入力してください。";
-titlebox_under_msg      = "※メインテーマのワードを含めた文章にしてください。<br />※重要なキーワードは、前方に配置してください。<br />※魅力的な文章は、検索結果でクリック率が高まります。";
-//lint_error_msg          = "閾値の取得に失敗しました。";
-lint_mid_msg            = "最適化されています。";
+const id_prefix   = "#hpbseo_";
+const cls_prefix  = "hpbseo_";
+const name_prefix = "hpbseo_";
+const cls_defaulttext = "hpbseo_defaulttext";
+const ajax_php_file   = "postajax.php";
+const lint_file       = "hpbseo.txt";
+const graph_row_max   = 10;	//グラフ表示件数
+const main_theme_max  = 3;	//メインテーマ表示単語数
+const uninputted_msg_body     = "記事本文を入力してください。";
+const titlebox_under_msg      = "※メインテーマのワードを含めた文章にしてください。<br />※重要なキーワードは、前方に配置してください。<br />※魅力的な文章は、検索結果でクリック率が高まります。";
+const lint_mid_msg            = "最適化されています。";
 
 /*--------------------------------------------------------------------
  * 文字数カウント
 --------------------------------------------------------------------*/
 function fncStrCount(str){
 
-//	//エディター判別
-//	str = fncGetBodyStr(str);
-
 	//タグ・改行除去
 	var remove_tag = fncRemoveTag(str);
 
 	//アンエスケープ
-	function unescapeHTML(val){ return jQuery('<div>').html(val).text(); };
-	remove_tag = unescapeHTML(remove_tag);
+	//remove_tag = jQuery('<div>').html(remove_tag).text();
+	const container = document.createElement('div');
+	container.innerHTML = remove_tag;
+	remove_tag = container.innerText;
+	//console.log(remove_tag);
 
-	//文字数取得
-	var len =remove_tag.length;
-	//文字数を返す
-	return len;
+	return remove_tag.length;
 }
 
 
@@ -41,51 +33,64 @@ function fncStrCount(str){
  * タグ・改行
 --------------------------------------------------------------------*/
 function fncRemoveTag(str){
+	if (str == null) return '';
+
 	//タグ・改行除去
 	var remove_tag = str.trim();
-	remove_tag = str.trim();
-	remove_tag = remove_tag.replace(/<\/?[^>]+>/gi, "");
-	remove_tag = remove_tag.replace(/\r\n/gi, "");
-	remove_tag = remove_tag.replace(/\r/gi, "");
-	remove_tag = remove_tag.replace(/\n/gi, "");
-	remove_tag = remove_tag.replace(/ /gi, "");	//スペース削除
+	remove_tag = remove_tag.replace(/<!--[\s\S]*?-->/g, ''); // コメントを削除
+	remove_tag = remove_tag.replace(/<\/?[^>]+>/g, ''); // HTMLタグを削除
+	//remove_tag = remove_tag.replace(/\r\n/gi, "");
+	//remove_tag = remove_tag.replace(/\r/gi, "");
+	//remove_tag = remove_tag.replace(/\n/gi, "");
+	//remove_tag = remove_tag.replace(/ /gi, "");
+	remove_tag = remove_tag.replace(/\s+/g, ""); // すべての空白文字を削除
 
 	return remove_tag;
 }
 
-//IE7.0以下trim対応
-if(typeof String.prototype.trim !== 'function') {
-	String.prototype.trim = function() {
-		return this.replace(/^\s+|\s+$/g, '');
-	}
-}
 
 /*--------------------------------------------------------------------
  * 記事本文取得（エディター判別/記事本文を返す）
 --------------------------------------------------------------------*/
-function fncGetBodyStr(str){
+function fncGetBodyStr(str) {
 
-	//※ビジュアルエディタ使用時※
-	if (jQuery('#wp-content-wrap').hasClass('tmce-active') && tinyMCE.get("content") != undefined) {
-		var mstDom = tinyMCE.get('content');
-		str = mstDom.serializer.serialize(mstDom.getBody());	//タグ有／改行なし
-//	}else{
-//		//アンエスケープ
-//		function unescapeHTML(val){ return jQuery('<div>').html(val).text(); };
-//		str = unescapeHTML(str);
-	} else if (jQuery('.block-editor-block-list__layout').text() != undefined && jQuery('.block-editor-block-list__layout').text() != "") {
-		str = jQuery('.block-editor-block-list__layout').text(); //タグ有／改行なし 2020/03
-	} else if (jQuery('.block-editor-post-text-editor').text() != undefined && jQuery('.block-editor-post-text-editor').text() != "") {
-		str = jQuery('.block-editor-post-text-editor').text(); //タグ有／改行なし 2020/03
+	// ブロックエディタが使われているか（DOMで判定）
+	var isBlockEditor = document.querySelector('.block-editor') !== null || document.querySelector('.edit-post-visual-editor') !== null;
+
+	if (
+		isBlockEditor &&
+		typeof wp !== 'undefined' &&
+		wp.data &&
+		wp.data.select &&
+		wp.data.select('core/editor') &&
+		typeof wp.data.select('core/editor').getEditedPostContent === 'function'
+	) {
+		var blockContent = wp.data.select('core/editor').getEditedPostContent();
+		if (blockContent) {
+			document.getElementById(cls_prefix + "content_tune_wrap").classList.remove("fail");
+			return blockContent;
+		} else {
+			document.getElementById(cls_prefix + "content_tune_wrap").classList.add("fail");
+			return '';
+		}
 	}
 
-	if(str==undefined) str='';
+	// クラシックエディタの処理
+	if (typeof window.tinymce !== 'undefined') {
+		var editor = window.tinymce.get('content');
+		if (editor) {
+			if (!editor.isHidden()) {
+				return editor.getContent();
+			}
+			var el = document.getElementById('content');
+			if (el) {
+				return el.value;
+			}
+		}
+	}
 
-	str = str.replace('ブロックを選択するには「/」を入力', '');
-
-	return str;
+	return str || '';
 }
-
 
 /*--------------------------------------------------------------------
  * 閾値比較（記事本文の文字数）
@@ -126,8 +131,8 @@ function fncMetaDesCount(e){
 	var g_str   = e.data.g_str.val();
 	var g_flg   = e.data.g_flg;
 	var prev    = e.data.prev;
-	var msg     = e.data.msg;
 	var len     = 0;
+	var disp_image = e.data.disp_image;
 
 	//改行削除
 	str = str.replace(/\r\n/gi, "");
@@ -135,14 +140,14 @@ function fncMetaDesCount(e){
 	str = str.replace(/\n/gi, "");
 
 	//一括設定の値を使う→文字数に追加
-	if(g_flg.attr('checked') && !g_flg.attr('disabled')){
+	if(g_flg.prop('checked') && !g_flg.prop('disabled')){
 		len += g_str.length;
 	}else{
 		g_str = '';
 	}
 
 	//文字数取得（入力表示回避）
-	if(str!=msg && str!=""){
+	if(str!=""){
 		len += str.length;
 	}else{
 		str = '';
@@ -160,6 +165,8 @@ function fncMetaDesCount(e){
 	//プレビュー表示
 	prev.text( str + g_str );
 
+	// 表示イメージ
+	disp_image.text( str + g_str );
 }
 
 /*--------------------------------------------------------------------
@@ -173,19 +180,18 @@ function fncMetaKeyCount(e){
 	var g_str   = e.data.g_str.val();
 	var g_flg   = e.data.g_flg;
 	var prev    = e.data.prev;
-	var msg     = e.data.msg;
 	var len     = 0;
 
 	var arr      = new Array();
 	var join_str = "";
 
 	//文字数取得（入力表示回避）
-	if(str!=msg && str!=""){
+	if(str!=""){
 		arr.push(str);
 	}
 
 	//一括設定の値を使う
-	if(g_flg.attr('checked') && !g_flg.attr('disabled') && g_str!=""){
+	if(g_flg.prop('checked') && !g_flg.prop('disabled') && g_str!=""){
 		arr.push(g_str);
 	}
 
@@ -214,56 +220,6 @@ function fncMetaKeyCount(e){
 
 }
 
-
-/*--------------------------------------------------------------------
- * 入力欄のデフォルトテキスト表示 IN
---------------------------------------------------------------------*/
-function fncTextBoxFocusIn(e){
-	var input = e.data.input;	//入力欄
-	var msg   = e.data.msg;		//デフォルトメッセージ
-
-	//デフォルトメッセージが表示されている場合
-	if(input.val()==msg){
-		input.val('');
-        input.removeClass(cls_defaulttext);
-	}
-}
-/*--------------------------------------------------------------------
- * 入力欄のデフォルトテキスト表示 OUT
---------------------------------------------------------------------*/
-function fncTextBoxFocusOut(e){
-	var input = e.data.input;	//入力欄
-	var msg   = e.data.msg;		//デフォルトメッセージ
-
-	//入力値が空の場合
-	if(input.val()==''){
-		input.val(msg);
-		input.addClass(cls_defaulttext);
-	}
-}
-
-
-/*--------------------------------------------------------------------
- * オプション設定―表示イメージON/OFF
---------------------------------------------------------------------*/
-function fncDispImageSetting(e){
-	var flg = e.data.flg;
-	var opt = e.data.opt;
-	var div = e.data.div;
-	var off_css = cls_prefix + "dispimage_div_off";
-	
-	//表示切替
-	if(flg.attr('checked')){
-		//表示ON
-		opt.removeAttr("disabled");
-        div.removeClass(off_css);
-	}else{
-		//表示OFF
-		opt.attr('disabled',"disabled");
-		div.addClass(off_css);
-		
-	}
-}
 
 
 /*--------------------------------------------------------------------
@@ -322,35 +278,17 @@ function fncLintCheck(lint,val,disp,cls){
 
 
 /*--------------------------------------------------------------------
- * 記事投稿時の未入力メッセージチェック
---------------------------------------------------------------------*/
-function fncSubmitCheck(e){
-	var meta_des = e.data.meta_des;
-	var meta_key = e.data.meta_key;
-
-	//未入力メッセージ表示時は値を空にする
-	if(meta_des.val()==uninputted_msg_meta_des){
-		meta_des.val('');
-	}
-	if(meta_key.val()==uninputted_msg_meta_key){
-		meta_key.val('');
-	}
-}
-
-
-/*--------------------------------------------------------------------
  * 一括設定呼び出しボタン押下
 --------------------------------------------------------------------*/
 function fncGlobalSet(e){
 	var input = e.data.input;
 	var str   = e.data.str.val();
-	var msg   = e.data.msg;
 	var fnc   = e.data.fnc;
 
 	//入力値あるとき
-	if(input.val()!='' && input.val()!=msg){
+	if(input.val()!=''){
 		//確認ダイアログ表示
-		flg = window.confirm('入力されている文字列を上書きしますか？');
+		var flg = window.confirm('入力されている文字列を上書きしますか？');
 		// キャンセルの場合は終了
 		if(!flg){
 			return;
@@ -366,54 +304,6 @@ function fncGlobalSet(e){
 
 	//閾値チェック
 	fnc(e);
-
-}
-
-
-/*--------------------------------------------------------------------
- * カテゴリサービス登録状況
---------------------------------------------------------------------*/
-function fncCategoryCheck(e){
-	var post_url  = e.data.view_post_url.val();
-	var cat_value = e.data.category_value;
-	var cat_cnt   = e.data.category_cnt;
-	var comment   = e.data.category_comment;
-
-	//ajax用url
-	var ajax_url = plugin_url + category_php_file;
-	//引数
-	var data = {'url':post_url};
-
-	//カテゴリサービス登録状況取得
-	jQuery.ajax({
-		type: "POST",
-		url: ajax_url,
-		data: data,
-		traditional: true,
-		dataType: "json",
-		scriptCharset:"UTF-8",
-		success: function(json){
-			if(json.status["cod"]!="success"){
-				cat_value.text("");
-				cat_cnt.text("カテゴリサービス登録状況の取得に失敗しました。");
-				comment.text("取得失敗");
-			}else if(json.result["cnt"] == 0){
-				cat_value.text(json.result["cnt"] + "/" +json.result["all"]);
-				cat_cnt.text("現在、ディレクトリサービスへの登録がありません。");
-				comment.text("登録状況");
-			}else{
-				cat_value.text(json.result["cnt"] + "/" +json.result["all"]);
-				cat_cnt.text("現在 " + json.result["cnt"] + " つのディレクトリサービスに対して登録がされております。");
-				comment.text("登録状況");
-			}
-		},
-		error: function(xhr, status, XMLHttpRequest, textStatus, errorThrown){
-			//取得失敗
-			cat_value.text("");
-			cat_cnt.text("カテゴリサービス登録状況の取得に失敗しました。");
-			comment.text("取得失敗");
-		}
-	});
 
 }
 
@@ -619,7 +509,7 @@ function fncContentTune_Disp(e,json){
 		graph_tag += '<td class="no" nowrap>' + (i+1) + '. </td>';
 		graph_tag += '<td class="keywords">' + keywords_list[i].key + '</td>';
 		graph_tag += '<td class="value" nowrap>' + keywords_list[i].val     + '</td>';
-		graph_tag += '<td><img src="' + graph_img + '"height="12px" width="' + graph_width + '%" /></td>';
+		graph_tag += '<td><img src="' + graph_img + '" style="height:12px;max-height:12px;width:' + graph_width + '%;" /></td>';
 		graph_tag += '<td class="percent" nowrap>' + graph_percent     + '%</td>';
 		graph_tag += '</tr>';
 	}
@@ -647,12 +537,7 @@ function fncContentTune_Disp(e,json){
  * 呼び出し
 ====================================================================*/
 (function($) {
-//$(function(){
-//競合を避けるために、$ の代わりに jQuery を使う
 jQuery(window).on("load",function(){
-
-//	//投稿編集画面
-//	if('post' == $('#post_type').val()){
 
 	//画面チェック
 	var custom_post_type_list = $(id_prefix + 'custom_post_type_list').val();
@@ -680,16 +565,15 @@ jQuery(window).on("load",function(){
 			},
 			success: function(json){
 
-				var titlebox_after_html = '';
-				//タイトル下のメッセージ表示
-				if($('.editor-post-title__input').length>0){
-					// ビジュアルエディタ
-					titlebox_after_html = '<div class="' + cls_prefix + 'arrow_box_top ' + cls_prefix + 'title_alert_visual">' + titlebox_under_msg + '</div>';
-					$('.editor-post-title__input').after(titlebox_after_html);
-				}else{
+				// エディタチェック
+				if (document.body.classList.contains('block-editor-page')) {
+					// ブロックエディタ
+				} else {
 					// クラシックエディタ
-					titlebox_after_html = '<div class="' + cls_prefix + 'arrow_box_top ' + cls_prefix + 'title_alert_clasic">' + titlebox_under_msg + '</div>';
-					$('#titlewrap').after(titlebox_after_html);
+					if (document.getElementById('titlewrap')) {
+						titlebox_after_html = '<div class="' + cls_prefix + 'arrow_box_top ' + cls_prefix + 'title_alert_clasic">' + titlebox_under_msg + '</div>';
+						document.getElementById('titlewrap').insertAdjacentHTML('afterend', titlebox_after_html);
+					}
 				}
 
 				//閾値取得
@@ -716,13 +600,14 @@ jQuery(window).on("load",function(){
 				metades_cnt_obj.data.g_str = $(id_prefix + 'global_meta_des');
 				metades_cnt_obj.data.g_flg = $(id_prefix + 'meta_des_add_flg');
 				metades_cnt_obj.data.prev  = $(id_prefix + 'meta_des_preview');
-				metades_cnt_obj.data.msg   = uninputted_msg_meta_des;
+				metades_cnt_obj.data.disp_image = $(id_prefix +'disp_image .hpbseo_meta_des');
+
 				//初回
 				fncMetaDesCount(metades_cnt_obj);
 				//入力時
-				$(id_prefix + "meta_des").bind("click blur keydown keyup keypress change", metades_cnt_obj.data, fncMetaDesCount);
+				$(id_prefix + "meta_des").on("click blur keydown keyup keypress change", metades_cnt_obj.data, fncMetaDesCount);
 				//チェックボックスクリック時
-				$(id_prefix + 'meta_des_add_flg').bind("click",metades_cnt_obj.data,fncMetaDesCount);
+				$(id_prefix + 'meta_des_add_flg').on("click",metades_cnt_obj.data,fncMetaDesCount);
 
 				//メタキーワード単語数カウント
 				var metakey_cnt_obj  = {};
@@ -733,37 +618,12 @@ jQuery(window).on("load",function(){
 				metakey_cnt_obj.data.g_str = $(id_prefix + 'global_meta_key');
 				metakey_cnt_obj.data.g_flg = $(id_prefix + 'meta_key_add_flg');
 				metakey_cnt_obj.data.prev  = $(id_prefix + 'meta_key_preview');
-				metakey_cnt_obj.data.msg   = uninputted_msg_meta_key;
 				//初回
 				fncMetaKeyCount(metakey_cnt_obj);
 				//入力時
-				$(id_prefix + "meta_key").bind("click blur keydown keyup keypress change", metakey_cnt_obj.data, fncMetaKeyCount);
+				$(id_prefix + "meta_key").on("click blur keydown keyup keypress change", metakey_cnt_obj.data, fncMetaKeyCount);
 				//チェックボックスクリック時
-				$(id_prefix + 'meta_key_add_flg').bind("click",metakey_cnt_obj.data,fncMetaKeyCount);
-
-				//入力中表示（メタディスクリプション）
-				var metades_focus_obj  = {};
-				metades_focus_obj.data = {};
-				metades_focus_obj.data.input = $(id_prefix + 'meta_des');
-				metades_focus_obj.data.msg   = uninputted_msg_meta_des;
-				//初回
-				fncTextBoxFocusOut(metades_focus_obj);
-				//フォーカスIN
-				$(id_prefix + 'meta_des').bind("focus",metades_focus_obj.data,fncTextBoxFocusIn);
-				//フォーカスOUT
-				$(id_prefix + 'meta_des').bind("blur" ,metades_focus_obj.data,fncTextBoxFocusOut);
-
-				//入力中表示（メタキーワード）
-				var metakey_focus_obj  = {};
-				metakey_focus_obj.data = {};
-				metakey_focus_obj.data.input = $(id_prefix + 'meta_key');
-				metakey_focus_obj.data.msg   = uninputted_msg_meta_key;
-				//初回
-				fncTextBoxFocusOut(metakey_focus_obj);
-				//フォーカスIN
-				$(id_prefix + 'meta_key').bind("focus",metakey_focus_obj.data,fncTextBoxFocusIn);
-				//フォーカスOUT
-				$(id_prefix + 'meta_key').bind("blur" ,metakey_focus_obj.data,fncTextBoxFocusOut);
+				$(id_prefix + 'meta_key_add_flg').on("click",metakey_cnt_obj.data,fncMetaKeyCount);
 
 				//一括設定値呼び出し（メタディスクリプション）
 				var global_meta_des_obj  = {};
@@ -776,9 +636,10 @@ jQuery(window).on("load",function(){
 				global_meta_des_obj.data.g_str = $(id_prefix + 'global_meta_des');
 				global_meta_des_obj.data.g_flg = $(id_prefix + 'meta_des_add_flg');
 				global_meta_des_obj.data.prev  = $(id_prefix + 'meta_des_preview');
-				global_meta_des_obj.data.msg   = uninputted_msg_meta_des;
+				global_meta_des_obj.data.disp_image = $(id_prefix +'disp_image .hpbseo_meta_des');
+
 				//ボタン押下時
-				$(id_prefix + 'global_set_meta_des').bind("click",global_meta_des_obj.data,fncGlobalSet);
+				$(id_prefix + 'global_set_meta_des').on("click",global_meta_des_obj.data,fncGlobalSet);
 
 				//一括設定値呼び出し（メタキーワード）
 				var global_meta_key_obj  = {};
@@ -791,9 +652,8 @@ jQuery(window).on("load",function(){
 				global_meta_key_obj.data.g_str = $(id_prefix + 'global_meta_key');
 				global_meta_key_obj.data.g_flg = $(id_prefix + 'meta_key_add_flg');
 				global_meta_key_obj.data.prev  = $(id_prefix + 'meta_key_preview');
-				global_meta_key_obj.data.msg   = uninputted_msg_meta_key;
 				//ボタン押下時
-				$(id_prefix + 'global_set_meta_key').bind("click",global_meta_key_obj.data,fncGlobalSet);
+				$(id_prefix + 'global_set_meta_key').on("click",global_meta_key_obj.data,fncGlobalSet);
 
 				//メインテーマ・構成ワード
 				var content_tune_obj   = {};
@@ -811,10 +671,39 @@ jQuery(window).on("load",function(){
 				content_tune_obj.data.content_tune_wrap = $(id_prefix + 'content_tune_wrap');
 				content_tune_obj.data.loading           = $(id_prefix + 'content_tune_loading');
 
-				//初回
-				fncContentTune(content_tune_obj);
 				//更新ボタンクリック
-				$(id_prefix + 'content_tune').bind("click",content_tune_obj.data,fncContentTune);
+				$(id_prefix + 'content_tune').on("click",content_tune_obj.data,fncContentTune);
+				//初回実行
+				fncContentTune(content_tune_obj);
+
+
+				/*
+				// タイトル変更検出
+				//Classic Editor / 初期Gutenberg
+				$('input#title, .editor-post-title__input').on('input', function () {
+					const title = $(this).val();
+					$(id_prefix + 'disp_image .hpbseo_title span').text(title);
+				});
+				*/
+
+				// Gutenberg の wp.data が使える場合（5.4以降推奨）
+				if (typeof wp !== 'undefined' &&
+					wp.data &&
+					wp.data.select &&
+					wp.data.subscribe &&
+					wp.data.select('core/editor') &&
+					typeof wp.data.select('core/editor').getEditedPostAttribute === 'function'
+				) {
+					let currentTitle = wp.data.select('core/editor').getEditedPostAttribute('title');
+
+					wp.data.subscribe(function () {
+						const newTitle = wp.data.select('core/editor').getEditedPostAttribute('title');
+						if (newTitle !== currentTitle) {
+							currentTitle = newTitle;
+							$(id_prefix + 'disp_image .hpbseo_title span').text(newTitle);
+						}
+					});
+				}
 
 			},
 			error: function(){
@@ -826,39 +715,7 @@ jQuery(window).on("load",function(){
 			}
 		});
 
-//		//カテゴリサービス登録状況
-//		var category_obj  = {};
-//		category_obj.data = {};
-//		category_obj.data.view_post_url    = $(id_prefix + 'view_post_url');
-//		category_obj.data.category_value   = $(id_prefix + 'category_value');
-//		category_obj.data.category_cnt     = $(id_prefix + 'category_cnt');
-//		category_obj.data.category_comment = $(id_prefix + 'category_comment');
-//		$(window).bind("load",category_obj.data,fncCategoryCheck);
-
 	}
-
-	//オプション設定画面
-	//表示イメージon/off（チェックボックス）
-	var dispimage_chk_obj  = {};
-	dispimage_chk_obj.data = {};
-	dispimage_chk_obj.data.flg = $(id_prefix + 'dispimage_flg');
-	dispimage_chk_obj.data.opt = $('input:radio[name=' + name_prefix + 'dispimage_opt]');
-	dispimage_chk_obj.data.div = $(id_prefix + 'dispimage_div');
-	$(window).bind("load",dispimage_chk_obj.data,fncDispImageSetting);
-	$(id_prefix + 'dispimage_flg').bind("click",dispimage_chk_obj.data,fncDispImageSetting);
-
-	//表示イメージon/off（ラジオボタン）
-	$('input:radio[name=' + name_prefix + 'dispimage_opt]').bind("click",function(){
-		var opt_val = $('input:radio[name=' + name_prefix + 'dispimage_opt]:checked').val();
-		$(id_prefix + 'dispimage_opt_sub').val( opt_val )
-	});
-
-	//記事投稿時の未入力メッセージチェック
-	var submit_check_obj  = {};
-	submit_check_obj.data = {};
-	submit_check_obj.data.meta_des = $(id_prefix + 'meta_des');
-	submit_check_obj.data.meta_key = $(id_prefix + 'meta_key');
-	$("#post").submit(submit_check_obj.data, fncSubmitCheck);
 
 });
 })(jQuery);
